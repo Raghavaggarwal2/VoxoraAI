@@ -6,7 +6,7 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from core.vector_store import build_vector_store, load_vector_store, get_retriever
 
 def get_llm():
-    return ChatMistralAI(model='mistral-small-latest', mistral_api_key=os.getenv("MISTRALAI_API_KEY"), temperature=0.3)
+    return ChatMistralAI(model='mistral-medium-latest', mistral_api_key=os.getenv("MISTRALAI_API_KEY"), temperature=0.3)
 
 def format_docs(docs):
     return "\n\n".join([doc.page_content for doc in docs])

@@ -1,11 +1,10 @@
-from dotenv import load_dotenv
+import os
 from utils.audio_processor import process_input
 from core.transcriber import transcribe_all
 from core.summarize import summarize, generate_title
 from core.extractor import extract_actionable_items, extract_key_decisions, extract_questions
 from core.rag_engine import build_rag_chain, ask_question
 
-load_dotenv()
 def run_pipeline(source: str) -> dict:
     print("Starting AI Video Assistant")
     
@@ -39,6 +38,13 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
+    # Prompt for API keys if not in environment
+    if not os.environ.get("GROQ_API_KEY"):
+        os.environ["GROQ_API_KEY"] = input("Enter Groq API Key: ").strip()
+    if not os.environ.get("MISTRALAI_API_KEY"):
+        os.environ["MISTRALAI_API_KEY"] = input("Enter MistralAI API Key: ").strip()
+
     # CLI entry point
     source = input("Enter YouTube URL or local file path: ").strip()
     result = run_pipeline(source)

@@ -10,9 +10,7 @@ huggingface-hub
 yt-dlp
 pydub
 ffmpeg-python
-openai-whisper
-torch
-torchaudio
+groq
 deep-translator
 chromadb
 sentence-transformers
@@ -25,3 +23,5 @@ fpdf2
 numpy
 tqdm
 requests
+torch
+torchvision
