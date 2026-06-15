@@ -27,7 +27,7 @@ def load_vector_store() -> Chroma:
         raise ValueError("Vector store not found. Please build it first.")
     
     embeddings = get_embeddings()
-    vector_store = Chroma(collection_name=COLLECTION_NAME, embedding=embeddings, persist_directory=CHROMA_DIR)
+    vector_store = Chroma(collection_name=COLLECTION_NAME, embedding_function=embeddings, persist_directory=CHROMA_DIR)
     
     return vector_store
 
