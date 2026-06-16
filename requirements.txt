@@ -7,7 +7,7 @@ langchain_ollama
 langchain_core
 langchain_huggingface
 huggingface-hub
-yt-dlp
+yt-dlp>=2026.01.01
 pydub
 ffmpeg-python
 groq

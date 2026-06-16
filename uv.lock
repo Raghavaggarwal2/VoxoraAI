@@ -77,7 +77,7 @@ requires-dist = [
     { name = "torchvision", specifier = ">=0.27.0" },
     { name = "tqdm", specifier = ">=4.67.3" },
     { name = "watchdog", specifier = ">=6.0.0" },
-    { name = "yt-dlp", specifier = ">=2026.3.17" },
+    { name = "yt-dlp", specifier = ">=2026.1.1" },
 ]
 
 [[package]]
