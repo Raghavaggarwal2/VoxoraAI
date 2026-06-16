@@ -2,17 +2,6 @@ import yt_dlp
 from pydub import AudioSegment
 import os
 import shutil
-import shutil
-import subprocess
-
-print("node:", shutil.which("node"))
-print("npm:", shutil.which("npm"))
-
-try:
-    print(subprocess.check_output(["node", "--version"]).decode())
-except Exception as e:
-    print("Node test failed:", e)
-
 
 DOWNLOAD_DIR = "downloads/"
 
@@ -47,11 +36,6 @@ def download_youtube_audio(url: str) -> str:
         "format": "bestaudio/best",
         "outtmpl": output_path,
         "ffmpeg_location": ffmpeg_location,
-        # "extractor_args": {
-        # "youtube": {
-        #     "player_client": ["web", "tv"]
-        #     }
-        # },
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",
@@ -59,20 +43,12 @@ def download_youtube_audio(url: str) -> str:
                 "preferredquality": "192",
             }
         ],
-        "quiet": False,
-        "verbose": True
+        "quiet": True,
     }
-    try:
-        # with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        #     info = ydl.extract_info(url, download=True)
-        #     filename = ydl.prepare_filename(info).replace(".webm", ".wav").replace(".m4a", ".wav")
-        #     return filename 
-        with yt_dlp.YoutubeDL({"quiet": False}) as ydl:
-            info = ydl.extract_info(url, download=False)
-            print(info["title"])
-
-    except Exception as e:
-        raise RuntimeError(f"YouTube download failed: {e}")
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+        filename = ydl.prepare_filename(info).replace(".webm", ".wav").replace(".m4a", ".wav")
+    return filename 
 
 def convert_to_wav(input_path: str) -> str:
     """Convert any audio/video file to WAV format."""
@@ -117,3 +93,4 @@ def process_input(source: str) -> list:
     chunks = chunk_audio(wav_path)
     print(f"Audio processing complete. Generated {len(chunks)} chunk(s).")
     return chunks
+    
