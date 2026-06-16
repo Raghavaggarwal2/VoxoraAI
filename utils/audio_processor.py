@@ -36,11 +36,11 @@ def download_youtube_audio(url: str) -> str:
         "format": "bestaudio/best",
         "outtmpl": output_path,
         "ffmpeg_location": ffmpeg_location,
-        "extractor_args": {
-        "youtube": {
-            "player_client": ["web", "tv"]
-            }
-        },
+        # "extractor_args": {
+        # "youtube": {
+        #     "player_client": ["web", "tv"]
+        #     }
+        # },
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",
@@ -58,9 +58,7 @@ def download_youtube_audio(url: str) -> str:
             return filename 
 
     except Exception as e:
-        import traceback
-        print(traceback.format_exc())
-        raise
+        raise RuntimeError(f"YouTube download failed: {e}")
 
 def convert_to_wav(input_path: str) -> str:
     """Convert any audio/video file to WAV format."""
