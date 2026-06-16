@@ -38,7 +38,7 @@ def download_youtube_audio(url: str) -> str:
         "ffmpeg_location": ffmpeg_location,
         "extractor_args": {
         "youtube": {
-            "player_client": ["android"]
+            "player_client": ["web", "tv"]
             }
         },
         "postprocessors": [
@@ -60,6 +60,7 @@ def download_youtube_audio(url: str) -> str:
     except Exception as e:
         import traceback
         print(traceback.format_exc())
+        raise
 
 def convert_to_wav(input_path: str) -> str:
     """Convert any audio/video file to WAV format."""
