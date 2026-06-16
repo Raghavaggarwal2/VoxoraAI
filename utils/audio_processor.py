@@ -2,6 +2,17 @@ import yt_dlp
 from pydub import AudioSegment
 import os
 import shutil
+import shutil
+import subprocess
+
+print("node:", shutil.which("node"))
+print("npm:", shutil.which("npm"))
+
+try:
+    print(subprocess.check_output(["node", "--version"]).decode())
+except Exception as e:
+    print("Node test failed:", e)
+
 
 DOWNLOAD_DIR = "downloads/"
 
@@ -52,10 +63,13 @@ def download_youtube_audio(url: str) -> str:
         "verbose": True
     }
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info).replace(".webm", ".wav").replace(".m4a", ".wav")
-            return filename 
+        # with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        #     info = ydl.extract_info(url, download=True)
+        #     filename = ydl.prepare_filename(info).replace(".webm", ".wav").replace(".m4a", ".wav")
+        #     return filename 
+        with yt_dlp.YoutubeDL({"quiet": False}) as ydl:
+            info = ydl.extract_info(url, download=False)
+            print(info["title"])
 
     except Exception as e:
         raise RuntimeError(f"YouTube download failed: {e}")
