@@ -1,12 +1,9 @@
 import os
 from groq import Groq
 
-# Use the full 'whisper-large-v3' model instead of turbo. 
-# Turbo is highly compressed and struggles with Hindi, while the full v3 model is state-of-the-art for multilingual audio.
 WHISPER_MODEL = "whisper-large-v3"
 
 def get_client():
-    # Instantiate a fresh client each time so it always uses the latest API key from the Streamlit session
     return Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 def transcribe_chunk(chunk_path: str, translate: bool = False, language: str = None) -> str:
@@ -15,7 +12,6 @@ def transcribe_chunk(chunk_path: str, translate: bool = False, language: str = N
     kwargs = {
         "model": WHISPER_MODEL,
     }
-    # If a specific language is provided (e.g. 'hi' for Hindi), force the model to use it.
     if language and language.lower() != "auto":
         kwargs["language"] = language
 
@@ -29,7 +25,6 @@ def transcribe_chunk(chunk_path: str, translate: bool = False, language: str = N
             
     return result.text
 
-# helps to stop chunking if error comes in particular chunk therby making easy to detect which chunk is causing the issue.
 def transcribe_all(chunks: list, translate: bool = False, language: str = None) -> str:
     full_transcript = ""
     

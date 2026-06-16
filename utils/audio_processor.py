@@ -70,7 +70,6 @@ def convert_to_wav(input_path: str) -> str:
 def chunk_audio(wav_path: str, chunk_minutes: int = 5) -> list:
     """Split a WAV file into smaller chunks."""
     audio = AudioSegment.from_wav(wav_path)
-    # Ensure audio is 16kHz mono to minimize file size for API limits
     audio = audio.set_channels(1).set_frame_rate(16000)
     chunk_length_ms = chunk_minutes * 60 * 1000
     chunks = []

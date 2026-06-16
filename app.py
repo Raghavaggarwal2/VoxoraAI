@@ -1120,7 +1120,6 @@ elif st.session_state.pipeline_result:
             if r["mindmap"]:
                 clean_code = r["mindmap"].replace("```mermaid", "").replace("```", "").strip()
                 
-                # Fix Mermaid syntax errors (LLM often generates un-ID'd quoted strings or invalid chars)
                 clean_lines = []
                 for i, line in enumerate(clean_code.split('\n')):
                     if not line.strip() or line.strip().lower() == 'mindmap':
