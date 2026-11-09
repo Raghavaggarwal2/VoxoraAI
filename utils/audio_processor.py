@@ -8,6 +8,16 @@ DOWNLOAD_DIR = "downloads/"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 
+class YouTubeVerificationRequiredError(RuntimeError):
+    """Raised when YouTube requires sign-in, bot check, or interactive verification."""
+    pass
+
+
+class YouTubeAccessDeniedError(RuntimeError):
+    """Raised when YouTube media is private, age-restricted, or unavailable."""
+    pass
+
+
 def _get_ffmpeg_location() -> str | None:
     return os.getenv("FFMPEG_LOCATION") or shutil.which("ffmpeg")
 
@@ -23,8 +33,10 @@ def _get_ffmpeg_directory() -> str | None:
 
     return os.path.dirname(ffmpeg_location)
 
-def download_youtube_audio(url: str) -> str:
-    output_path = os.path.join(DOWNLOAD_DIR, "%(title)s.%(ext)s")
+def download_youtube_audio(url: str, output_dir: str = None) -> str:
+    target_dir = output_dir or DOWNLOAD_DIR
+    os.makedirs(target_dir, exist_ok=True)
+    output_path = os.path.join(target_dir, "%(title)s.%(ext)s")
     ffmpeg_location = _get_ffmpeg_directory()
 
     if not ffmpeg_location:
@@ -45,14 +57,27 @@ def download_youtube_audio(url: str) -> str:
         ],
         "quiet": True,
     }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        filename = ydl.prepare_filename(info).replace(".webm", ".wav").replace(".m4a", ".wav")
-    return filename 
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            filename = ydl.prepare_filename(info).replace(".webm", ".wav").replace(".m4a", ".wav")
+        return filename
+    except Exception as e:
+        msg = str(e).lower()
+        if "confirm you're not a bot" in msg or "sign in" in msg or "bot" in msg or "403" in msg:
+            raise YouTubeVerificationRequiredError(
+                "YouTube requires sign-in or bot verification for this video. Automated stream extraction was not permitted. Please upload a local media file directly."
+            ) from e
+        if "private video" in msg or "members-only" in msg or "age" in msg or "unavailable" in msg:
+            raise YouTubeAccessDeniedError(
+                f"Video is private, restricted, or unavailable on YouTube: {str(e)}"
+            ) from e
+        raise 
 
-def convert_to_wav(input_path: str) -> str:
+def convert_to_wav(input_path: str, output_path: str = None) -> str:
     """Convert any audio/video file to WAV format."""
-    output_path = os.path.splitext(input_path)[0] + "_converted.wav"
+    if not output_path:
+        output_path = os.path.splitext(input_path)[0] + "_converted.wav"
     ffmpeg_executable = _get_ffmpeg_location()
 
     if not ffmpeg_executable:
@@ -67,7 +92,7 @@ def convert_to_wav(input_path: str) -> str:
     audio.export(output_path, format="wav")
     return output_path
 
-def chunk_audio(wav_path: str, chunk_minutes: int = 5) -> list:
+def chunk_audio(wav_path: str, chunk_minutes: int = 5, output_dir: str = None) -> list:
     """Split a WAV file into smaller chunks."""
     audio = AudioSegment.from_wav(wav_path)
     audio = audio.set_channels(1).set_frame_rate(16000)
@@ -75,22 +100,26 @@ def chunk_audio(wav_path: str, chunk_minutes: int = 5) -> list:
     chunks = []
     for i, start in enumerate(range(0, len(audio), chunk_length_ms)):
         chunk = audio[start:start + chunk_length_ms]
-        chunk_path = f"{wav_path}_chunk_{i}.wav"
+        if output_dir:
+            chunk_path = os.path.join(output_dir, f"chunk_{i}.wav")
+        else:
+            chunk_path = f"{wav_path}_chunk_{i}.wav"
         chunk.export(chunk_path, format="wav")
         chunks.append(chunk_path)
     return chunks
 
-def process_input(source: str) -> list:
+def process_input(source: str, output_dir: str = None) -> list:
     """Process an input file (YouTube URL or local file) and return a list of WAV chunk paths."""
     if source.startswith("http://") or source.startswith("https://"):
         print("Detected YouTube URL. Downloading audio...")
-        wav_path = download_youtube_audio(source)
+        wav_path = download_youtube_audio(source, output_dir=output_dir)
     else:
         print("Detected local file. Converting to WAV...")
-        wav_path = convert_to_wav(source)
+        wav_target = os.path.join(output_dir, "input_converted.wav") if output_dir else None
+        wav_path = convert_to_wav(source, output_path=wav_target)
 
     print("Chunking audio into smaller segments...")
-    chunks = chunk_audio(wav_path)
+    chunks = chunk_audio(wav_path, output_dir=output_dir)
     print(f"Audio processing complete. Generated {len(chunks)} chunk(s).")
     return chunks
     

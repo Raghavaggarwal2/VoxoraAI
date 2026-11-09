@@ -25,3 +25,6 @@ tqdm
 requests
 torch
 torchvision
+fastapi
+uvicorn
+python-multipart

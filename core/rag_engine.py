@@ -6,13 +6,13 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from core.vector_store import build_vector_store, load_vector_store, get_retriever
 
 def get_llm():
-    return ChatMistralAI(model='mistral-medium-latest', mistral_api_key=os.getenv("MISTRALAI_API_KEY"), temperature=0.3)
+    return ChatMistralAI(model='mistral-small-latest', mistral_api_key=os.getenv("MISTRALAI_API_KEY"), temperature=0.3)
 
 def format_docs(docs):
     return "\n\n".join([doc.page_content for doc in docs])
 
-def build_rag_chain(transcript: str):
-    vector_store = build_vector_store(transcript)
+def build_rag_chain(transcript: str, collection_name: str = "meeting_transcript"):
+    vector_store = build_vector_store(transcript, collection_name=collection_name)
     retriever = get_retriever(vector_store)
     llm = get_llm()
 
@@ -44,8 +44,8 @@ def build_rag_chain(transcript: str):
 
     return rag_chain
 
-def load_rag_chain():
-    vector_store = load_vector_store()
+def load_rag_chain(collection_name: str = "meeting_transcript"):
+    vector_store = load_vector_store(collection_name=collection_name)
     retriever = get_retriever(vector_store)
     
     llm = get_llm()

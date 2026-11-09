@@ -7,7 +7,7 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 import os
 
 def get_llm():
-    return ChatMistralAI(model='mistral-medium-latest', mistral_api_key=os.getenv("MISTRALAI_API_KEY"), temperature=0.3)
+    return ChatMistralAI(model='mistral-small-latest', mistral_api_key=os.getenv("MISTRALAI_API_KEY"), temperature=0.3)
 
 def split_transcript(transcript: str) -> list:
     splitter = RecursiveCharacterTextSplitter(chunk_size=3000, chunk_overlap=200)

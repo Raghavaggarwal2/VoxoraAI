@@ -11,23 +11,20 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 def get_embeddings():
     return HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL, model_kwargs={"device": "cpu"})
 
-def build_vector_store(transcript: str) -> Chroma:
-    print("Building vector store...")
+def build_vector_store(transcript: str, collection_name: str = COLLECTION_NAME, persist_directory: str = CHROMA_DIR) -> Chroma:
+    print(f"Building vector store for collection '{collection_name}'...")
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = splitter.split_text(transcript)
     
     docs = [Document(page_content=chunk, metadata={"source": f"chunk_{i}"}) for i, chunk in enumerate(chunks)]
     embeddings = get_embeddings()
-    vector_store = Chroma.from_documents(documents=docs, collection_name=COLLECTION_NAME, embedding=embeddings, persist_directory=CHROMA_DIR)
+    vector_store = Chroma.from_documents(documents=docs, collection_name=collection_name, embedding=embeddings, persist_directory=persist_directory)
     
     return vector_store
 
-def load_vector_store() -> Chroma:
-    if not os.path.exists(os.path.join(CHROMA_DIR, COLLECTION_NAME)):
-        raise ValueError("Vector store not found. Please build it first.")
-    
+def load_vector_store(collection_name: str = COLLECTION_NAME, persist_directory: str = CHROMA_DIR) -> Chroma:
     embeddings = get_embeddings()
-    vector_store = Chroma(collection_name=COLLECTION_NAME, embedding_function=embeddings, persist_directory=CHROMA_DIR)
+    vector_store = Chroma(collection_name=collection_name, embedding_function=embeddings, persist_directory=persist_directory)
     
     return vector_store
 
