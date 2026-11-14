@@ -16,10 +16,27 @@ class Settings:
     PROJECT_NAME: str = "Voxora AI API"
     VERSION: str = "0.1.0"
     
-    # Provider keys
-    GROQ_API_KEY: str | None = os.getenv("GROQ_API_KEY")
-    MISTRALAI_API_KEY: str | None = os.getenv("MISTRALAI_API_KEY")
+    # Provider keys - Groq Dual Account Support
+    # Account 1: Dedicated for Groq Whisper audio transcription
+    GROQ_API_KEY: str | None = os.getenv("GROQ_API_KEY") or os.getenv("GROQ_WHISPER_API_KEY")
+    GROQ_WHISPER_API_KEY: str | None = os.getenv("GROQ_WHISPER_API_KEY") or os.getenv("GROQ_API_KEY")
+    
+    # Account 2: Dedicated for Groq LLM reasoning (Summaries, Mind Map, Actions, Decisions, RAG)
+    GROQ_LLM_API_KEY: str | None = (
+        os.getenv("GROQ_LLM_API_KEY")
+        or os.getenv("GROQ_API_KEY_2")
+        or os.getenv("GROQ_API_KEY")
+    )
+    GROQ_MODEL: str = "openai/gpt-oss-20b"
+    if os.getenv("GROQ_MODEL"):
+        from utils.retry_handler import normalize_groq_model
+        GROQ_MODEL = normalize_groq_model(os.getenv("GROQ_MODEL"))
     WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", "whisper-large-v3")
+    
+    # Optional / Legacy keys
+    GEMINI_API_KEY: str | None = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    MISTRALAI_API_KEY: str | None = os.getenv("MISTRALAI_API_KEY")
     FFMPEG_LOCATION: str | None = os.getenv("FFMPEG_LOCATION")
     
     # Upload limits

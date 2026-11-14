@@ -12,15 +12,7 @@ def ask_job_question_endpoint(job_id: str, payload: ChatRequest):
     Uses the scoped RAG chain generated for this specific source.
     """
     job = job_manager.get_job(job_id)
-    if not job:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "code": "JOB_NOT_FOUND",
-                "message": f"Job with ID '{job_id}' does not exist",
-            },
-        )
-    if job.status != JobStatus.COMPLETED or not job.rag_chain:
+    if job and job.status != JobStatus.COMPLETED:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
@@ -30,11 +22,33 @@ def ask_job_question_endpoint(job_id: str, payload: ChatRequest):
         )
 
     try:
-        answer = job_manager.ask_question(job_id, payload.question.strip())
+        res = job_manager.ask_question(job_id, payload.question.strip(), return_sources=True)
+        if isinstance(res, tuple):
+            answer, sources = res
+        else:
+            answer, sources = res, []
+
         return ChatResponse(
             job_id=job_id,
             question=payload.question.strip(),
             answer=answer,
+            sources=sources,
+        )
+    except KeyError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "JOB_NOT_FOUND",
+                "message": f"Job with ID '{job_id}' does not exist or has expired",
+            },
+        )
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "RAG_NOT_READY",
+                "message": str(ve),
+            },
         )
     except Exception as e:
         raise HTTPException(

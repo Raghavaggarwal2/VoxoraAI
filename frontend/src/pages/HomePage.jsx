@@ -15,6 +15,7 @@ import {
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
+import Select from '../components/common/Select';
 import { api } from '../services/api';
 
 const SUPPORTED_EXTENSIONS = ['mp4', 'mp3', 'wav', 'm4a', 'webm', 'mkv', 'mov'];
@@ -253,18 +254,21 @@ export default function HomePage() {
               >
                 Transcription Language
               </label>
-              <select
+              <Select
                 id="upload-language-select"
                 value={uploadLang}
                 onChange={(e) => setUploadLang(e.target.value)}
-                className="w-full bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-700 rounded-lg text-slate-900 dark:text-slate-100 text-sm px-3.5 py-2 transition-colors duration-150 outline-none focus:border-ocean-600 focus:ring-2 focus:ring-ocean-500/20"
               >
                 {LANGUAGES.map((lang) => (
-                  <option key={lang.value} value={lang.value}>
+                  <option
+                    key={lang.value}
+                    value={lang.value}
+                    className="bg-white dark:bg-navy-900 text-slate-800 dark:text-slate-100"
+                  >
                     {lang.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div className="pt-2">

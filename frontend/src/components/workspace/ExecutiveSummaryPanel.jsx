@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Copy, Check, FileText, Sparkles } from 'lucide-react';
 import Button from '../common/Button';
 import Badge from '../common/Badge';
+import MarkdownRenderer from '../common/MarkdownRenderer';
 
 export default function ExecutiveSummaryPanel({ summaryText, wordCount }) {
   const [copied, setCopied] = useState(false);
@@ -14,10 +15,6 @@ export default function ExecutiveSummaryPanel({ summaryText, wordCount }) {
     }
   };
 
-  const paragraphs = (summaryText || '')
-    .split(/\n\n+/)
-    .filter((p) => p.trim().length > 0);
-
   return (
     <div className="space-y-4">
       {/* ── Toolbar ──────────────────────────────────────────────────────────── */}
@@ -27,7 +24,7 @@ export default function ExecutiveSummaryPanel({ summaryText, wordCount }) {
             Executive Brief
           </Badge>
           <span className="text-xs text-slate-500 dark:text-slate-400 font-sans">
-            Synthesized via Mistral AI
+            Synthesized via Groq (GPT-OSS 20B)
           </span>
         </div>
 
@@ -42,20 +39,13 @@ export default function ExecutiveSummaryPanel({ summaryText, wordCount }) {
       </div>
 
       {/* ── Summary Content ─────────────────────────────────────────────────── */}
-      <div className="p-6 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-850 shadow-sm space-y-4">
+      <div className="p-6 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-850 shadow-sm">
         {!summaryText || summaryText.trim().length === 0 ? (
           <div className="py-12 text-center text-xs text-slate-500 dark:text-slate-400">
             No summary content available.
           </div>
         ) : (
-          paragraphs.map((p, i) => (
-            <p
-              key={i}
-              className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-sans"
-            >
-              {p}
-            </p>
-          ))
+          <MarkdownRenderer content={summaryText} />
         )}
       </div>
     </div>

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Copy, Check, CheckSquare, Square, CheckCircle2 } from 'lucide-react';
 import Button from '../common/Button';
 import Badge from '../common/Badge';
+import { renderInlineMarkdown } from '../common/MarkdownRenderer';
+import { parseListItems } from '../../utils/textParser';
 
 export default function ActionItemsPanel({ actionItemsText }) {
   const [copied, setCopied] = useState(false);
@@ -15,12 +17,8 @@ export default function ActionItemsPanel({ actionItemsText }) {
     }
   };
 
-  // Parse lines into items
-  const lines = (actionItemsText || '')
-    .split(/\n+/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0)
-    .map((line) => line.replace(/^[-*•\d+.]\s*/, ''));
+  // Parse lines into items, filtering negative replies
+  const lines = parseListItems(actionItemsText);
 
   const toggleCheck = (idx) => {
     setCompletedItems((prev) => ({
@@ -36,8 +34,8 @@ export default function ActionItemsPanel({ actionItemsText }) {
       {/* ── Toolbar ──────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between p-3 rounded-lg bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-700">
         <div className="flex items-center gap-2">
-          <Badge variant="ocean" size="sm">
-            {lines.length} Action Items
+          <Badge variant={lines.length > 0 ? 'ocean' : 'neutral'} size="sm">
+            {lines.length} {lines.length === 1 ? 'Action Item' : 'Action Items'}
           </Badge>
           {lines.length > 0 && (
             <span className="text-xs text-slate-500 dark:text-slate-400 font-sans">
@@ -93,7 +91,7 @@ export default function ActionItemsPanel({ actionItemsText }) {
                       : 'text-slate-800 dark:text-slate-200'
                   }`}
                 >
-                  {task}
+                  {renderInlineMarkdown(task)}
                 </span>
               </div>
             );

@@ -3,6 +3,7 @@ import os
 
 # Suppress annoying HuggingFace transformers warnings
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+os.environ.setdefault("GOOGLE_GENAI_API_VERSION", "v1beta")
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -107,7 +108,7 @@ html, body, [data-testid="stApp"] {
     color: #1ec8a8;
     border: 1px solid rgba(30, 200, 168, 0.25);
 }
-.key-badge.mistral {
+.key-badge.gemini, .key-badge.mistral {
     background: rgba(124, 77, 220, 0.12);
     color: #a07af5;
     border: 1px solid rgba(124, 77, 220, 0.25);
@@ -790,50 +791,57 @@ with st.sidebar:
         <div class="sidebar-brand-icon">🎬</div>
         <div>
             <div class="sidebar-brand-text">Voxora AI</div>
-            <div class="sidebar-brand-sub">POWERED BY GROQ &amp; MISTRAL</div>
+            <div class="sidebar-brand-sub">POWERED BY GROQ (DUAL-ACCOUNT)</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Groq Key ──
+    # ── Groq Account 1 (Whisper) ──
     st.markdown("""
     <div class="key-section">
         <div class="key-section-header">
-            <span class="key-badge groq">GROQ</span>
-            <span class="key-label">Transcription Key</span>
+            <span class="key-badge groq">ACCOUNT 1</span>
+            <span class="key-label">Groq Whisper (Speech)</span>
         </div>
         <div class="key-model">▸ whisper-large-v3</div>
     </div>
     """, unsafe_allow_html=True)
-    groq_api_key = st.text_input("Groq API Key", type="password",
+    groq_api_key = st.text_input("Groq Account 1 API Key (Whisper)", type="password",
                                   placeholder="gsk_...",
-                                  help="Used for ultra-fast Whisper transcription via Groq Cloud.")
+                                  help="Dedicated for ultra-fast Whisper audio transcription via Groq Cloud Account 1.")
     if groq_api_key:
         os.environ["GROQ_API_KEY"] = groq_api_key
+        os.environ["GROQ_WHISPER_API_KEY"] = groq_api_key
         st.markdown('<div class="key-status set"><span class="key-dot set"></span>Key saved for this session</div>', unsafe_allow_html=True)
     else:
         st.markdown('<div class="key-status unset"><span class="key-dot unset"></span>Not configured</div>', unsafe_allow_html=True)
 
     st.markdown("<hr class='sidebar-divider'>", unsafe_allow_html=True)
 
-    # ── Mistral Key ──
+    # ── Groq Account 2 (LLM) ──
     st.markdown("""
     <div class="key-section">
         <div class="key-section-header">
-            <span class="key-badge mistral">MISTRAL</span>
-            <span class="key-label">AI Analysis Key</span>
+            <span class="key-badge groq">ACCOUNT 2</span>
+            <span class="key-label">Groq LLM (Intelligence)</span>
         </div>
-        <div class="key-model">▸ mistral-medium-latest</div>
+        <div class="key-model">▸ openai/gpt-oss-20b (~1,000 t/s)</div>
     </div>
     """, unsafe_allow_html=True)
-    mistral_api_key = st.text_input("MistralAI API Key", type="password",
-                                     placeholder="...",
-                                     help="Used for summaries, action items, decisions, and RAG Q&A chat.")
-    if mistral_api_key:
-        os.environ["MISTRALAI_API_KEY"] = mistral_api_key
+    groq_llm_key = st.text_input("Groq Account 2 API Key (LLM)", type="password",
+                                  placeholder="gsk_...",
+                                  help="Dedicated for summaries, action items, decisions, mind map, and RAG Q&A via Groq Cloud Account 2.")
+    if groq_llm_key:
+        os.environ["GROQ_LLM_API_KEY"] = groq_llm_key
+        os.environ["GROQ_API_KEY_2"] = groq_llm_key
         st.markdown('<div class="key-status set"><span class="key-dot set"></span>Key saved for this session</div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div class="key-status unset"><span class="key-dot unset"></span>Not configured</div>', unsafe_allow_html=True)
+        # Fallback to Account 1 key if Account 2 not specified
+        if groq_api_key:
+            os.environ["GROQ_LLM_API_KEY"] = groq_api_key
+            st.markdown('<div class="key-status set"><span class="key-dot set"></span>Using Account 1 key as fallback</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="key-status unset"><span class="key-dot unset"></span>Not configured</div>', unsafe_allow_html=True)
 
     st.markdown("<hr class='sidebar-divider'>", unsafe_allow_html=True)
 
@@ -1119,7 +1127,10 @@ elif st.session_state.pipeline_result:
         with st.container(border=True):
             if r["mindmap"]:
                 clean_code = r["mindmap"].replace("```mermaid", "").replace("```", "").strip()
-                
+                import re
+                # Heal any double-wrapped nodes: n1["`root["..."]`"] -> root["..."]
+                clean_code = re.sub(r'n\d+\["`\s*([a-zA-Z0-9_-]+\[".*?"\])\s*`"\]', r'\1', clean_code)
+
                 clean_lines = []
                 for i, line in enumerate(clean_code.split('\n')):
                     if not line.strip() or line.strip().lower() == 'mindmap':
@@ -1127,8 +1138,13 @@ elif st.session_state.pipeline_result:
                         continue
                     indent = len(line) - len(line.lstrip())
                     text = line.strip()
-                    if '((' in text and '))' in text:
-                        clean_lines.append(line)  # Already has a shape
+
+                    # If already formatted with any valid Mermaid node shape, preserve it
+                    has_shape = bool(
+                        re.search(r'\(\(.*?\)\)|\[.*?\]|\(.*?\)|{{.*?}}|\)\).*?\(\(', text)
+                    )
+                    if has_shape:
+                        clean_lines.append(line)
                     else:
                         if text.startswith('"') and text.endswith('"'):
                             text = text[1:-1]

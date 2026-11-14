@@ -75,5 +75,49 @@ class TestJobLifecycle(unittest.TestCase):
         self.assertTrue(os.path.exists("downloads"))
         self.assertTrue(os.path.exists("vector_db"))
 
+    def test_job_persistence_and_server_restart_recovery(self):
+        """
+        Verify that job state persisted to SQLite survives memory wipe (server restart),
+        and completed results and status remain retrievable.
+        """
+        from backend.services.job_service import job_manager
+
+        test_id = "test-restart-recovery-999"
+        job = Job(
+            job_id=test_id,
+            source="demo_presentation.mp4",
+            source_type="upload",
+            language="en",
+        )
+        fake_results = {
+            "title": "Persistent Demo",
+            "summary": "This summary survives backend restart",
+            "action_items": "1. Verify SQLite persistence",
+            "key_decisions": "1. Keep local Dexie as primary",
+            "questions": "1. Did it survive?",
+            "mindmap": "mindmap\n  root((Persistent))",
+        }
+        job.set_completed(
+            transcript="Sample transcript surviving restart",
+            results=fake_results,
+            rag_chain=None,
+        )
+
+        # Simulate backend restart by wiping memory cache
+        with job_manager._lock:
+            job_manager._jobs.pop(test_id, None)
+
+        # Retrieve job: should recover from SQLite
+        recovered = job_manager.get_job(test_id)
+        self.assertIsNotNone(recovered)
+        self.assertEqual(recovered.job_id, test_id)
+        self.assertEqual(recovered.status, JobStatus.COMPLETED)
+        self.assertEqual(recovered.transcript, "Sample transcript surviving restart")
+        self.assertEqual(recovered.results["title"], "Persistent Demo")
+
+        # Clean up
+        job_manager.delete_job(test_id)
+        self.assertIsNone(job_manager.get_job(test_id))
+
 if __name__ == "__main__":
     unittest.main()

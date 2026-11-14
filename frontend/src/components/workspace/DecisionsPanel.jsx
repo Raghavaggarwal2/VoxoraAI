@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Copy, Check, CheckCircle2, ShieldCheck } from 'lucide-react';
 import Button from '../common/Button';
 import Badge from '../common/Badge';
+import { renderInlineMarkdown } from '../common/MarkdownRenderer';
+import { parseListItems } from '../../utils/textParser';
 
 export default function DecisionsPanel({ decisionsText }) {
   const [copied, setCopied] = useState(false);
@@ -14,19 +16,15 @@ export default function DecisionsPanel({ decisionsText }) {
     }
   };
 
-  const lines = (decisionsText || '')
-    .split(/\n+/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0)
-    .map((line) => line.replace(/^[-*•\d+.]\s*/, ''));
+  const lines = parseListItems(decisionsText);
 
   return (
     <div className="space-y-4">
       {/* ── Toolbar ──────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between p-3 rounded-lg bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-700">
         <div className="flex items-center gap-2">
-          <Badge variant="ocean" size="sm">
-            {lines.length} Decisions Logged
+          <Badge variant={lines.length > 0 ? 'ocean' : 'neutral'} size="sm">
+            {lines.length} {lines.length === 1 ? 'Decision Logged' : 'Decisions Logged'}
           </Badge>
           <span className="text-xs text-slate-500 dark:text-slate-400 font-sans">
             Explicit agreements and strategic consensus
@@ -59,7 +57,7 @@ export default function DecisionsPanel({ decisionsText }) {
                 <CheckCircle2 className="w-3.5 h-3.5" />
               </div>
               <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-sans leading-relaxed">
-                {dec}
+                {renderInlineMarkdown(dec)}
               </p>
             </div>
           ))

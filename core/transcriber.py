@@ -1,10 +1,15 @@
 import os
+from dotenv import load_dotenv
 from groq import Groq
+
+load_dotenv()
 
 WHISPER_MODEL = "whisper-large-v3"
 
 def get_client():
-    return Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    # Account 1: GROQ_WHISPER_API_KEY or GROQ_API_KEY
+    api_key = os.environ.get("GROQ_WHISPER_API_KEY") or os.environ.get("GROQ_API_KEY")
+    return Groq(api_key=api_key)
 
 def transcribe_chunk(chunk_path: str, translate: bool = False, language: str = None) -> str:
     client = get_client()

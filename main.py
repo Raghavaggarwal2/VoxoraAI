@@ -1,4 +1,7 @@
 import os
+
+# Set default Google GenAI API version to v1beta for Gemini 1.5/2.0 Flash support
+os.environ.setdefault("GOOGLE_GENAI_API_VERSION", "v1beta")
 from utils.audio_processor import process_input
 from core.transcriber import transcribe_all
 from core.summarize import summarize, generate_title
@@ -39,11 +42,18 @@ def main():
 if __name__ == "__main__":
     main()
     
-    # Prompt for API keys if not in environment
-    if not os.environ.get("GROQ_API_KEY"):
-        os.environ["GROQ_API_KEY"] = input("Enter Groq API Key: ").strip()
-    if not os.environ.get("MISTRALAI_API_KEY"):
-        os.environ["MISTRALAI_API_KEY"] = input("Enter MistralAI API Key: ").strip()
+    # Prompt for Groq API keys if not in environment
+    if not os.environ.get("GROQ_API_KEY") and not os.environ.get("GROQ_WHISPER_API_KEY"):
+        whisper_k = input("Enter Groq Account 1 API Key (Whisper transcription): ").strip()
+        os.environ["GROQ_API_KEY"] = whisper_k
+        os.environ["GROQ_WHISPER_API_KEY"] = whisper_k
+    if not os.environ.get("GROQ_LLM_API_KEY") and not os.environ.get("GROQ_API_KEY_2"):
+        llm_k = input("Enter Groq Account 2 API Key (LLM Intelligence, press Enter to reuse Account 1): ").strip()
+        if llm_k:
+            os.environ["GROQ_LLM_API_KEY"] = llm_k
+            os.environ["GROQ_API_KEY_2"] = llm_k
+        else:
+            os.environ["GROQ_LLM_API_KEY"] = os.environ.get("GROQ_API_KEY", "")
 
     # CLI entry point
     source = input("Enter YouTube URL or local file path: ").strip()

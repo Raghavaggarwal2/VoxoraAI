@@ -3,6 +3,7 @@ langchain
 langchain_community
 langchain_groq
 langchain_mistralai
+langchain-google-genai
 langchain_ollama
 langchain_core
 langchain_huggingface

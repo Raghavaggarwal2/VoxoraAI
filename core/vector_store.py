@@ -8,12 +8,17 @@ CHROMA_DIR = "vector_db"
 COLLECTION_NAME = "meeting_transcript"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
+_cached_embeddings = None
+
 def get_embeddings():
-    return HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL, model_kwargs={"device": "cpu"})
+    global _cached_embeddings
+    if _cached_embeddings is None:
+        _cached_embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL, model_kwargs={"device": "cpu"})
+    return _cached_embeddings
 
 def build_vector_store(transcript: str, collection_name: str = COLLECTION_NAME, persist_directory: str = CHROMA_DIR) -> Chroma:
     print(f"Building vector store for collection '{collection_name}'...")
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     chunks = splitter.split_text(transcript)
     
     docs = [Document(page_content=chunk, metadata={"source": f"chunk_{i}"}) for i, chunk in enumerate(chunks)]
@@ -28,5 +33,25 @@ def load_vector_store(collection_name: str = COLLECTION_NAME, persist_directory:
     
     return vector_store
 
-def get_retriever(vector_store: Chroma, k: int = 4):
-    return vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k})
+def get_retriever(vector_store: Chroma, k: int = 6):
+    return vector_store.as_retriever(
+        search_type="mmr",
+        search_kwargs={"k": k, "fetch_k": max(15, k * 2), "lambda_mult": 0.7}
+    )
+
+def delete_vector_store(collection_name: str = COLLECTION_NAME, persist_directory: str = CHROMA_DIR) -> bool:
+    """
+    Safely delete a specific vector store collection from persistent ChromaDB.
+    """
+    try:
+        import chromadb
+        client = chromadb.PersistentClient(path=persist_directory)
+        existing = [c.name for c in client.list_collections()]
+        if collection_name in existing:
+            client.delete_collection(name=collection_name)
+            print(f"Deleted vector collection '{collection_name}'")
+            return True
+        return False
+    except Exception as e:
+        print(f"Note: Could not delete vector collection '{collection_name}': {e}")
+        return False

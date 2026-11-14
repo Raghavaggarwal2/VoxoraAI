@@ -56,52 +56,97 @@ const STAGE_ORDER = [
   'completed',
 ];
 
-export default function ProcessingView({ jobId, onComplete }) {
+export default function ProcessingView({ jobId, onComplete, onStatusUpdate }) {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [networkError, setNetworkError] = useState(null);
+  const [isJobNotFound, setIsJobNotFound] = useState(false);
   const [copied, setCopied] = useState(false);
   const pollTimerRef = useRef(null);
+  const consecutiveErrorsRef = useRef(0);
+  const consecutive404Ref = useRef(0);
+
+  const stopPolling = () => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+  };
 
   const fetchStatus = async () => {
+    // Guard against empty, undefined, or temporary local analysis IDs
+    if (!jobId || jobId === 'undefined' || jobId === 'null' || jobId.startsWith('analysis_')) {
+      return;
+    }
+
     try {
       const data = await api.getJobStatus(jobId);
+      consecutiveErrorsRef.current = 0;
+      consecutive404Ref.current = 0;
       setJob(data);
       setNetworkError(null);
+      setIsJobNotFound(false);
       setLoading(false);
 
-      if (data.status === 'completed') {
+      if (onStatusUpdate) {
+        onStatusUpdate(data);
+      }
+
+      if (data.status === 'completed' || data.status === 'failed') {
+        stopPolling();
         if (onComplete) {
           onComplete(data);
         }
       }
     } catch (err) {
-      setNetworkError(err.message || 'Unable to communicate with the processing server.');
       setLoading(false);
+
+      // Handle 404 with a 3-try grace window for newly queued backend jobs
+      if (err.status === 404 || err.code === 'JOB_NOT_FOUND' || err.code === 'HTTP_404') {
+        consecutive404Ref.current += 1;
+        if (consecutive404Ref.current >= 3) {
+          stopPolling();
+          if (!job) {
+            setIsJobNotFound(true);
+            setNetworkError('Processing job was not found on the backend server. The active session has expired.');
+          }
+        }
+        return;
+      }
+
+      consecutiveErrorsRef.current += 1;
+      // Stop polling after 5 consecutive network errors to prevent infinite requests
+      if (consecutiveErrorsRef.current >= 5) {
+        stopPolling();
+        setNetworkError(
+          'Unable to reach the processing server after multiple attempts. Polling has been paused.'
+        );
+        return;
+      }
+
+      setNetworkError(err.message || 'Unable to communicate with the processing server.');
     }
   };
 
   useEffect(() => {
+    consecutiveErrorsRef.current = 0;
+    consecutive404Ref.current = 0;
     fetchStatus();
 
-    // Poll every 1.5 seconds while not completed or failed
+    // Poll every 1.0 second while active for immediate real-time progress updates
     pollTimerRef.current = setInterval(() => {
       fetchStatus();
-    }, 1500);
+    }, 1000);
 
     return () => {
-      if (pollTimerRef.current) {
-        clearInterval(pollTimerRef.current);
-      }
+      stopPolling();
     };
   }, [jobId]);
 
   // Stop polling once terminal state is reached
   useEffect(() => {
     if (job?.status === 'completed' || job?.status === 'failed') {
-      if (pollTimerRef.current) {
-        clearInterval(pollTimerRef.current);
-      }
+      stopPolling();
     }
   }, [job?.status]);
 
@@ -185,7 +230,7 @@ export default function ProcessingView({ jobId, onComplete }) {
       </div>
 
       {/* ── Network Error Banner ────────────────────────────────────────────── */}
-      {networkError && (
+      {networkError && !isJobNotFound && (
         <div className="flex items-start justify-between gap-3 p-3.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800/60 dark:text-amber-200 text-xs">
           <div className="flex items-start gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
@@ -199,6 +244,28 @@ export default function ProcessingView({ jobId, onComplete }) {
             <RefreshCw className="w-3 h-3" />
             <span>Retry</span>
           </button>
+        </div>
+      )}
+
+      {/* ── Job Not Found Recovery Card ─────────────────────────────────────── */}
+      {isJobNotFound && !job && (
+        <div className="p-5 rounded-2xl border border-rose-200 bg-rose-50/80 dark:bg-rose-950/40 dark:border-rose-900/60 text-xs text-rose-800 dark:text-rose-200 space-y-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+            <span className="font-semibold text-sm">Processing session expired or not found</span>
+          </div>
+          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+            The job with ID <code className="font-mono px-1 py-0.5 rounded bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700">{jobId}</code> is no longer active on the server (the server may have restarted).
+          </p>
+          <div className="pt-1 flex items-center gap-2">
+            <Link
+              to="/history"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-navy-800 border border-slate-300 dark:border-navy-750 text-slate-700 dark:text-slate-200 font-medium hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors shadow-2xs"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Return to History</span>
+            </Link>
+          </div>
         </div>
       )}
 
@@ -245,6 +312,11 @@ export default function ProcessingView({ jobId, onComplete }) {
                     job?.status_message ||
                     'An error occurred during audio/video processing.'}
                 </p>
+                {job?.error?.code === 'NO_AUDIO_STREAM' && (
+                  <div className="p-2.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-[11px] leading-relaxed">
+                    <strong>Tip:</strong> If you downloaded this video with a web downloader or browser tool, it may have saved only the video stream (silent DASH track). Please ensure you download the complete file with audio or upload a media file with spoken sound.
+                  </div>
+                )}
                 {job?.error?.code && (
                   <p className="font-mono text-[11px] opacity-80">
                     Error Code: {job.error.code}

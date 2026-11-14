@@ -116,10 +116,19 @@ export const api = {
   downloadTranscriptUrl: (jobId) => `${BASE_URL}/jobs/${jobId}/download/transcript`,
 
   /**
+   * Delete a job and its vector records from server
+   */
+  deleteJob: (jobId) => apiClient.delete(`/jobs/${jobId}`),
+
+  /**
    * Ask question grounded in active job context
    */
-  askQuestion: (jobId, question) =>
-    apiClient.post(`/jobs/${jobId}/chat`, { question }),
+  askQuestion: (jobId, question, metadata = {}) =>
+    apiClient.post(`/jobs/${jobId}/chat`, {
+      question,
+      workspace_id: metadata.workspaceId || metadata.workspace_id,
+      analysis_id: metadata.analysisId || metadata.analysis_id,
+    }),
 };
 
 export default api;

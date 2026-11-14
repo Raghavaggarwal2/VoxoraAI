@@ -35,15 +35,15 @@ export default function Badge({
   };
 
   const sizes = {
-    sm: 'text-[11px] px-2 py-0.5 gap-1.5',
-    md: 'text-xs px-2.5 py-0.5 gap-1.5',
-    lg: 'text-sm px-3 py-1 gap-2',
+    sm: 'text-[11px] px-2.5 py-0.5 gap-1.5 leading-normal',
+    md: 'text-xs px-2.5 py-0.5 gap-1.5 leading-normal',
+    lg: 'text-sm px-3 py-1 gap-2 leading-normal',
   };
 
   return (
     <span
       className={cn(
-        'inline-flex items-center font-sans font-medium rounded-full border text-xs',
+        'inline-flex items-center font-sans font-medium rounded-full border whitespace-nowrap shrink-0',
         variants[variant] || variants.neutral,
         sizes[size],
         className
@@ -54,7 +54,7 @@ export default function Badge({
           className={cn('w-1.5 h-1.5 rounded-full shrink-0', dots[variant] || dots.neutral)}
         />
       )}
-      <span>{children}</span>
+      {children}
     </span>
   );
 }

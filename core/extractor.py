@@ -1,17 +1,34 @@
 # Actionable items, decisions, questions
 
-from langchain_mistralai import ChatMistralAI
+import os
+from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-import os
+from utils.retry_handler import invoke_with_retry, normalize_groq_model
 
-def get_llm():
-    return ChatMistralAI(model='mistral-small-latest', mistral_api_key=os.getenv("MISTRALAI_API_KEY"), temperature=0.1)
+def get_llm(model: str = None):
+    # Account 2 (LLM): GROQ_LLM_API_KEY, GROQ_API_KEY_2, or fallback to GROQ_API_KEY
+    api_key = (
+        os.getenv("GROQ_LLM_API_KEY")
+        or os.getenv("GROQ_API_KEY_2")
+        or os.getenv("GROQ_API_KEY")
+    )
+    raw_model = model or os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+    selected_model = normalize_groq_model(raw_model)
+    return ChatGroq(
+        model=selected_model,
+        groq_api_key=api_key,
+        temperature=0.1,
+    )
 
 def split_transcript(transcript: str) -> list[str]:
-    splitter = RecursiveCharacterTextSplitter(chunk_size=3000, chunk_overlap=200)
+    # Gemini 1.5 Flash has a 1M token context window. Chunking at 3000 chars forced
+    # dozens of sequential API calls that triggered rate limits and high latency.
+    # We use 50,000 chars (~12,000 tokens) chunk size so standard meetings process in 1 call,
+    # while retaining map-reduce chunking for exceptionally long transcripts.
+    splitter = RecursiveCharacterTextSplitter(chunk_size=50000, chunk_overlap=1000)
     return splitter.split_text(transcript)
 
 
@@ -40,13 +57,13 @@ def build_chunked_extractor(
         if not chunks:
             chunks = [transcript]
 
-        chunk_outputs = [item_chain.invoke({"text": chunk}) for chunk in chunks]
+        if len(chunks) == 1:
+            return invoke_with_retry(item_chain, {"text": chunks[0]})
+
+        chunk_outputs = [invoke_with_retry(item_chain, {"text": chunk}) for chunk in chunks]
         combined_output = "\n\n".join(chunk_outputs)
 
-        if len(chunk_outputs) == 1:
-            return chunk_outputs[0]
-
-        return merge_chain.invoke({"text": combined_output})
+        return invoke_with_retry(merge_chain, {"text": combined_output})
 
     return extract
 

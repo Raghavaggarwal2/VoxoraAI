@@ -106,3 +106,15 @@ def get_job_status(job_id: str):
         error=job.error,
         source_attribution=job.source_attribution,
     )
+
+@router.delete("/{job_id}", status_code=status.HTTP_200_OK)
+def delete_job_endpoint(job_id: str):
+    """
+    Delete a job from server memory and remove its isolated ChromaDB vector collection.
+    """
+    job_manager.delete_job(job_id)
+    return {
+        "success": True,
+        "job_id": job_id,
+        "message": "Job and vector records deleted successfully",
+    }

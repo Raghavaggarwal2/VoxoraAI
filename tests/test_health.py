@@ -12,6 +12,9 @@ class TestHealthEndpoint(unittest.TestCase):
         self.assertEqual(data.get("service"), "Voxora AI API")
         self.assertIn("providers", data)
         self.assertIn("groq", data["providers"])
+        self.assertIn("groq_whisper", data["providers"])
+        self.assertIn("groq_llm", data["providers"])
+        self.assertIn("gemini", data["providers"])
         self.assertIn("mistral", data["providers"])
 
 if __name__ == "__main__":

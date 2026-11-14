@@ -25,8 +25,9 @@ export default function BackendStatusPill() {
   }, []);
 
   const isOnline = Boolean(health?.status === 'ok');
-  const groqReady = Boolean(health?.providers?.groq?.configured);
-  const mistralReady = Boolean(health?.providers?.mistral?.configured);
+  const whisperReady = Boolean(health?.providers?.groq_whisper?.configured ?? health?.providers?.groq?.configured);
+  const llmReady = Boolean(health?.providers?.groq_llm?.configured ?? health?.providers?.groq?.configured);
+  const isDual = Boolean(health?.providers?.groq?.dual_account);
 
   return (
     <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-700 text-xs shadow-sm">
@@ -46,24 +47,32 @@ export default function BackendStatusPill() {
         <div className="hidden sm:flex items-center gap-1 pl-2 border-l border-slate-200 dark:border-navy-700 text-[11px]">
           <span
             className={`px-1.5 py-0.2 rounded font-mono ${
-              groqReady
+              whisperReady
                 ? 'bg-slate-100 text-slate-700 dark:bg-navy-900 dark:text-slate-300'
                 : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
             }`}
-            title="Whisper Transcription"
+            title="Groq Whisper Speech Transcription (Account 1)"
           >
-            Groq
+            Whisper
           </span>
           <span
             className={`px-1.5 py-0.2 rounded font-mono ${
-              mistralReady
+              llmReady
                 ? 'bg-slate-100 text-slate-700 dark:bg-navy-900 dark:text-slate-300'
                 : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
             }`}
-            title="Analysis & RAG"
+            title="Groq GPT-OSS 20B Intelligence (Account 2)"
           >
-            Mistral
+            GPT-OSS 20B
           </span>
+          {isDual && (
+            <span
+              className="px-1.5 py-0.2 rounded font-mono bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 text-[10px]"
+              title="Dual Groq Accounts active (Whisper + LLM isolation)"
+            >
+              Dual Acct
+            </span>
+          )}
         </div>
       )}
     </div>
