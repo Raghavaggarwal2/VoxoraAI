@@ -56,7 +56,12 @@ const STAGE_ORDER = [
   'completed',
 ];
 
-export default function ProcessingView({ jobId, onComplete, onStatusUpdate }) {
+export default function ProcessingView({
+  jobId,
+  onComplete,
+  onStatusUpdate,
+  autoComplete = true,
+}) {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [networkError, setNetworkError] = useState(null);
@@ -94,7 +99,7 @@ export default function ProcessingView({ jobId, onComplete, onStatusUpdate }) {
 
       if (data.status === 'completed' || data.status === 'failed') {
         stopPolling();
-        if (onComplete) {
+        if (autoComplete && onComplete) {
           onComplete(data);
         }
       }

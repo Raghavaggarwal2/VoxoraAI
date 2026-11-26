@@ -258,7 +258,6 @@ export default function WorkspacePage() {
   const handleProcessingComplete = async (completedJob) => {
     setJobStatus(completedJob);
     if (completedJob?.status === 'completed') {
-      setShowPipelineLog(false);
       const targetAnalysisId = localAnalysis?.id || jobId;
       const targetJobId = completedJob?.job_id || backendJobId || jobId;
       await fetchAndPersistResults(targetAnalysisId, targetJobId);
@@ -460,7 +459,11 @@ export default function WorkspacePage() {
         )}
         <ProcessingView
           jobId={effectiveJobId}
-          onComplete={handleProcessingComplete}
+          autoComplete={!showPipelineLog}
+          onComplete={(completed) => {
+            setShowPipelineLog(false);
+            handleProcessingComplete(completed);
+          }}
           onStatusUpdate={(updated) => setJobStatus(updated)}
         />
 
